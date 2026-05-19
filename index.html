@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manuscriptor — Article Writer v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script>
+function loadScript(src){return new Promise(res=>{const s=document.createElement('script');s.src=src;s.onload=()=>res(true);s.onerror=()=>{console.warn('Warning: CDN failed:',src);res(false);};document.head.appendChild(s);});}
+window._libsReady=Promise.all([
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'),
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
+]);
+</script>
+<style>
+:root{--ink:#0f0f0d;--paper:#f5f2eb;--cream:#ede9df;--amber:#c8902a;--amber-dim:#8a6118;--rust:#9b3a1e;--sage:#3d5a4a;--muted:#7a7568;--border:#d4cfc4;--card:#faf8f3;--shadow:rgba(15,15,13,.08);--phase-w:224px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh}
+#onboarding{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse 60% 40% at 20% 80%,rgba(200,144,42,.08) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 80% 20%,rgba(61,90,74,.06) 0%,transparent 60%),var(--paper)}
+.brand-header{text-align:center;margin-bottom:52px}
+.brand-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);margin-bottom:12px}
+.brand-title{font-family:'Playfair Display',serif;font-size:clamp(42px,7vw,72px);font-weight:400;line-height:1.05;letter-spacing:-.02em}
+.brand-title em{font-style:italic;color:var(--amber)}
+.brand-sub{font-size:15px;color:var(--muted);margin-top:14px;font-weight:300}
+.version-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border:1px solid var(--border);border-radius:12px;color:var(--muted);margin-top:10px;letter-spacing:.08em}
+.wizard{width:100%;max-width:680px}
+.step{display:none}.step.active{display:block;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.step-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:28px 32px;box-shadow:0 2px 12px var(--shadow)}
+.card h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;margin-bottom:8px}
+.card p.hint{color:var(--muted);font-size:13px;margin-bottom:24px;line-height:1.5}
+label{display:block;font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;margin-top:18px}
+label:first-child{margin-top:0}
+input[type=text],input[type=password],textarea,select{width:100%;background:var(--paper);border:1px solid var(--border);border-radius:3px;padding:10px 14px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--ink);outline:none;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--amber);background:#fff}
+textarea{resize:vertical;min-height:120px;line-height:1.6}
+.key-row{display:flex;gap:8px;align-items:center}.key-row input{flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px}
+.btn-icon{background:none;border:1px solid var(--border);border-radius:3px;padding:9px 12px;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;transition:all .15s;flex-shrink:0}
+.btn-icon:hover{border-color:var(--amber);color:var(--amber)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border-radius:3px;border:none;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;letter-spacing:.03em;transition:all .15s}
+.btn-primary{background:var(--amber);color:#fff}.btn-primary:hover{background:var(--amber-dim)}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted)}.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-danger{background:none;border:1px solid var(--border);color:var(--rust)}.btn-danger:hover{background:var(--rust);color:#fff;border-color:var(--rust)}
+.btn-sm{padding:6px 14px;font-size:12px}
+.step-nav{display:flex;justify-content:space-between;align-items:center;margin-top:28px}
+.upload-area{border:2px dashed var(--border);border-radius:4px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--paper);position:relative}
+.upload-area:hover,.upload-area.dragging{border-color:var(--amber);background:rgba(200,144,42,.04)}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:26px;margin-bottom:8px}.upload-label{font-size:14px;color:var(--muted)}.upload-label strong{color:var(--amber)}
+.upload-hint{font-size:12px;color:var(--border);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+.file-preview{display:none;align-items:center;gap:12px;padding:12px 16px;background:var(--paper);border:1px solid var(--border);border-radius:3px;margin-top:10px;font-size:13px}
+.file-preview.visible{display:flex}
+.file-name{flex:1;font-family:'IBM Plex Mono',monospace;color:var(--ink);word-break:break-all}.file-size{color:var(--muted);font-size:12px}
+.sources-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.source-toggle{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .15s;background:var(--paper);user-select:none}
+.source-toggle:hover{border-color:var(--amber)}.source-toggle.active{border-color:var(--amber);background:rgba(200,144,42,.07)}
+.source-toggle input{display:none}.source-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0}
+.source-toggle.active .source-dot{background:var(--amber)}.source-name{font-size:13px;font-weight:500}.source-desc{font-size:11px;color:var(--muted)}
+.journal-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.preset-btn{padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;background:var(--paper);color:var(--muted);transition:all .15s;font-family:'IBM Plex Mono',monospace}
+.preset-btn:hover,.preset-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(200,144,42,.06)}
+.params-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.params-grid .full{grid-column:1/-1}
+.section-toggles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sec-toggle{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .15s;background:var(--paper);text-align:center;user-select:none}
+.sec-toggle input{display:none}.sec-toggle:hover{border-color:var(--amber)}.sec-toggle.active{border-color:var(--amber);background:rgba(200,144,42,.07)}
+.sec-icon{font-size:18px}.sec-name{font-size:12px;font-weight:500}
+.cost-estimate{display:flex;gap:12px;padding:14px 18px;background:rgba(200,144,42,.06);border:1px solid rgba(200,144,42,.2);border-radius:3px;margin-top:16px;flex-wrap:wrap}
+.cost-item{text-align:center;min-width:60px}.cost-val{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:500;color:var(--amber-dim)}.cost-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.key-notice{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:rgba(200,144,42,.07);border:1px solid rgba(200,144,42,.25);border-radius:3px;font-size:12px;color:var(--muted);margin-top:14px}
+.error-banner{display:none;padding:10px 16px;background:rgba(155,58,30,.08);border:1px solid rgba(155,58,30,.3);border-radius:3px;font-size:13px;color:var(--rust);margin-top:14px;line-height:1.5}
+.error-banner.visible{display:block}
+.steps-indicator{display:flex;align-items:center;margin-bottom:32px;max-width:680px;width:100%}
+.step-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);background:var(--paper);transition:all .2s;flex-shrink:0;z-index:1}
+.step-dot.active{border-color:var(--amber);color:var(--amber);background:rgba(200,144,42,.1)}
+.step-dot.done{border-color:var(--sage);color:#fff;background:var(--sage)}
+.step-line{flex:1;height:2px;background:var(--border)}.step-line.done{background:var(--sage)}
+.checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:10px;cursor:pointer;user-select:none;text-transform:none;letter-spacing:0;font-weight:400}
+.checkbox-row input[type=checkbox]{width:auto;accent-color:var(--amber);cursor:pointer}
+#app{display:none;height:100vh;flex-direction:column}
+#app.visible{display:flex}
+.app-topbar{height:52px;background:var(--ink);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:10}
+.app-logo{font-family:'Playfair Display',serif;font-size:18px;color:var(--paper);font-style:italic}.app-logo span{color:var(--amber)}
+.topbar-divider{width:1px;height:24px;background:rgba(255,255,255,.12)}
+.topbar-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.06em}
+.topbar-info strong{color:rgba(255,255,255,.7)}
+.topbar-spacer{flex:1}
+.topbar-status{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.5)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .3s}
+.status-dot.running{background:#f0a500;animation:pulse 1.2s infinite}
+.status-dot.done{background:#4caf7d}.status-dot.error{background:var(--rust)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.progress-bar-wrap{height:2px;background:rgba(255,255,255,.1);flex-shrink:0}
+.progress-bar-fill{height:100%;background:var(--amber);transition:width .4s ease;width:0%}
+.app-body{display:flex;flex:1;overflow:hidden}
+.pipeline-panel{width:var(--phase-w);background:var(--cream);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.panel-section-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:16px 16px 8px}
+.phase-item{display:flex;align-items:center;gap:10px;padding:10px 16px;transition:background .12s}
+.phase-num{width:22px;height:22px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--muted);flex-shrink:0;transition:all .2s}
+.phase-item.running .phase-num{background:var(--amber);color:#fff}
+.phase-item.done .phase-num{background:var(--sage);color:#fff}
+.phase-item.error .phase-num{background:var(--rust);color:#fff}
+.phase-label{font-size:12px;font-weight:500;line-height:1.3}.phase-sub{font-size:11px;color:var(--muted)}
+.section-list{padding:0 8px 8px}
+.sec-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:3px;cursor:pointer;transition:background .12s;font-size:12px}
+.sec-item:hover{background:rgba(200,144,42,.08)}.sec-item.active-view{background:rgba(200,144,42,.12);color:var(--amber-dim);font-weight:500}
+.sec-status{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.regen-btn{font-size:11px;padding:2px 7px;border:1px solid var(--border);border-radius:2px;background:none;color:var(--muted);cursor:pointer;transition:all .12s;display:none;margin-left:auto;flex-shrink:0}
+.sec-item:hover .regen-btn{display:block}.regen-btn:hover{border-color:var(--amber);color:var(--amber)}
+.stats-row{padding:12px 16px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-box{text-align:center}.stat-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500;color:var(--ink)}.stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.log-panel{width:300px;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;background:var(--ink)}
+.log-header{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:8px}
+.log-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);flex:1}
+#log-output{flex:1;overflow-y:auto;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.7;color:rgba(255,255,255,.55)}
+.log-line{margin-bottom:2px}.log-time{color:rgba(255,255,255,.2);margin-right:6px}
+.log-line.info{color:rgba(255,255,255,.5)}.log-line.agent{color:#f0c56e}.log-line.ok{color:#7ec8a0}.log-line.warn{color:#f0a500}.log-line.err{color:#e07070}.log-line.dim{color:rgba(255,255,255,.25)}
+.article-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fff}
+.tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0}
+.tab-btn{padding:10px 18px;font-size:12px;font-weight:500;letter-spacing:.04em;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;font-family:'IBM Plex Sans',sans-serif}
+.tab-btn:hover{color:var(--ink)}.tab-btn.active{color:var(--amber-dim);border-bottom-color:var(--amber)}
+.tab-pane{display:none;flex:1;overflow:hidden;flex-direction:column}
+.tab-pane.active{display:flex}
+.critic-bar{padding:7px 16px;background:var(--cream);border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted);flex-shrink:0}
+.critic-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.critic-chip.ok{border-color:var(--sage);color:var(--sage)}.critic-chip.warn{border-color:#d09000;color:#c07a00}.critic-chip.fail{border-color:var(--rust);color:var(--rust)}
+#article-output{flex:1;overflow-y:auto;padding:48px 60px;font-family:'IBM Plex Sans',sans-serif;font-size:14.5px;line-height:1.85;color:var(--ink);max-width:860px;margin:0 auto;width:100%}
+#article-output h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:600;margin-bottom:8px;line-height:1.3}
+#article-output h2{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;margin-top:36px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:6px;display:flex;align-items:center;gap:10px}
+#article-output p{margin-bottom:14px}
+.citation{color:var(--amber-dim);font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;font-weight:500;transition:color .15s}
+.citation:hover{color:var(--amber)}
+.cite-tooltip{position:fixed;background:var(--ink);color:var(--paper);font-family:'IBM Plex Sans',sans-serif;font-size:12px;padding:10px 14px;border-radius:3px;max-width:380px;z-index:2000;pointer-events:none;line-height:1.6;display:none;box-shadow:0 4px 20px rgba(0,0,0,.35)}
+.cite-tooltip .ct-title{font-weight:500;margin-bottom:4px;color:#fff}
+.cite-tooltip .ct-meta{color:rgba(255,255,255,.5);font-size:11px;font-family:'IBM Plex Mono',monospace}
+.meta-line{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.references-block{margin-top:40px;padding-top:20px;border-top:2px solid var(--border)}
+.ref-item{display:flex;gap:10px;font-size:13px;margin-bottom:10px;line-height:1.5}
+.ref-num{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--amber-dim);flex-shrink:0;padding-top:2px;min-width:28px}
+.ref-text{color:var(--ink)}.ref-text a{color:var(--amber-dim);text-decoration:none}.ref-text a:hover{text-decoration:underline}
+.section-block{position:relative;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.section-block[contenteditable=true]{outline:none;border-left:2px solid var(--amber);padding-left:12px;margin-left:-14px;background:rgba(200,144,42,.02)}
+.h2-edit-btn{font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:2px;background:none;color:var(--muted);cursor:pointer;transition:all .12s;margin-left:auto;flex-shrink:0;font-family:'IBM Plex Sans',sans-serif}
+.h2-edit-btn:hover{border-color:var(--amber);color:var(--amber)}.h2-edit-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(200,144,42,.1)}
+.typing-cursor::after{content:'▋';animation:blink .8s infinite;color:var(--amber);font-size:.9em}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.placeholder-art{padding:80px 40px;text-align:center}
+.placeholder-art p{font-family:'Playfair Display',serif;font-size:18px;font-style:italic;color:var(--muted)}
+.placeholder-art .hint{font-size:13px;color:var(--muted);margin-top:8px;font-family:'IBM Plex Sans',sans-serif}
+.export-bar{display:none;gap:6px;padding:8px 16px;border-top:1px solid var(--border);background:var(--cream);flex-shrink:0;flex-wrap:wrap;align-items:center}
+.export-label{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-right:4px}
+.papers-list{padding:16px;overflow-y:auto;flex:1}
+.paper-card{padding:12px 14px;border:1px solid var(--border);border-radius:3px;margin-bottom:8px;background:var(--card);transition:border-color .15s}
+.paper-card:hover{border-color:var(--amber)}.paper-card.selected-ref{border-color:var(--sage);background:rgba(61,90,74,.04)}
+.paper-card-title{font-size:13px;font-weight:500;color:var(--ink);line-height:1.4;margin-bottom:4px}
+.paper-card-meta{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.paper-card-source{font-size:10px;color:var(--amber-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;font-family:'IBM Plex Mono',monospace}
+.paper-card-badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:var(--sage);color:#fff;font-family:'IBM Plex Mono',monospace;margin-right:4px;vertical-align:middle}
+.history-panel{padding:16px;overflow-y:auto;flex:1}
+.history-card{padding:14px 16px;border:1px solid var(--border);border-radius:3px;margin-bottom:10px;background:var(--card);cursor:pointer;transition:all .15s;display:flex;gap:12px;align-items:flex-start}
+.history-card:hover{border-color:var(--amber)}
+.history-card-info{flex:1}.history-card-title{font-size:13px;font-weight:500;margin-bottom:4px;line-height:1.3}
+.history-card-meta{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.history-card-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;transition:color .12s;flex-shrink:0}
+.history-card-del:hover{color:var(--rust)}
+.history-empty{padding:40px;text-align:center;color:var(--muted);font-size:13px;font-style:italic}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+@media(max-width:1100px){.log-panel{display:none}}
+@media(max-width:780px){.pipeline-panel{width:52px}.phase-label,.phase-sub,.panel-section-title,.section-list,.stats-row{display:none}#article-output{padding:24px 20px}}
+</style>
+</head>
+<body>
+
+<div id="onboarding">
+  <div class="brand-header">
+    <div class="brand-eyebrow">✦ Scientific Article Generator</div>
+    <div class="brand-title">Manu<em>scriptor</em></div>
+    <div class="brand-sub">Convierte tus datos en un artículo completo · Citas reales · Normas de revista</div>
+    <div class="version-badge">v2.0 — streaming · edición inline · historial · PDF · Word export · Critic agent</div>
+  </div>
+  <div class="steps-indicator">
+    <div class="step-dot active" id="sd1">1</div><div class="step-line" id="sl1"></div>
+    <div class="step-dot" id="sd2">2</div><div class="step-line" id="sl2"></div>
+    <div class="step-dot" id="sd3">3</div><div class="step-line" id="sl3"></div>
+    <div class="step-dot" id="sd4">4</div>
+  </div>
+  <div class="wizard">
+
+    <div class="step active" id="step1">
+      <div class="step-label">Paso 1 de 4 — Credenciales</div>
+      <div class="card">
+        <h2>Claves de API</h2>
+        <p class="hint">Manuscriptor usa la API de OpenAI directamente desde tu navegador. Tavily o Serper son opcionales para búsqueda web en tiempo real.</p>
+        <label>OpenAI API Key <span style="color:var(--rust)">*</span></label>
+        <div class="key-row"><input type="password" id="openai-key" placeholder="sk-..." autocomplete="off"><button class="btn-icon" onclick="toggleKey('openai-key')">👁</button><button class="btn-icon btn-danger" onclick="clearKey('openai-key')">🗑</button></div>
+        <label>Tavily API Key <span style="color:var(--muted);font-weight:300;text-transform:none;font-size:11px;">(opcional)</span></label>
+        <div class="key-row"><input type="password" id="tavily-key" placeholder="tvly-..." autocomplete="off"><button class="btn-icon" onclick="toggleKey('tavily-key')">👁</button><button class="btn-icon btn-danger" onclick="clearKey('tavily-key')">🗑</button></div>
+        <label>Serper API Key <span style="color:var(--muted);font-weight:300;text-transform:none;font-size:11px;">(opcional)</span></label>
+        <div class="key-row"><input type="password" id="serper-key" placeholder="..." autocomplete="off"><button class="btn-icon" onclick="toggleKey('serper-key')">👁</button><button class="btn-icon btn-danger" onclick="clearKey('serper-key')">🗑</button></div>
+        <label class="checkbox-row"><input type="checkbox" id="save-keys"> Guardar claves en localStorage</label>
+        <div class="key-notice">🔒 Las llamadas van directamente de tu navegador a las APIs. Nunca pasan por ningún servidor.</div>
+        <div id="step1-error" class="error-banner"></div>
+        <div class="step-nav"><span></span><button class="btn btn-primary" onclick="goStep(2)">Siguiente: Manuscrito →</button></div>
+      </div>
+    </div>
+
+    <div class="step" id="step2">
+      <div class="step-label">Paso 2 de 4 — Manuscrito</div>
+      <div class="card">
+        <h2>Tu material de partida</h2>
+        <p class="hint">Sube tu manuscrito parcial o pega el texto. Acepta <strong>.txt</strong>, <strong>.md</strong> y <strong>.pdf</strong>. Manuscriptor inferirá qué literatura buscar.</p>
+        <label>Tema del artículo <span style="color:var(--rust)">*</span></label>
+        <input type="text" id="article-topic" placeholder="ej. Efectividad de la fisioterapia en lumbalgia crónica...">
+        <label>Subir manuscrito <span style="color:var(--muted);font-weight:300;text-transform:none;font-size:11px;">(.txt · .md · .pdf — máx. 5 MB)</span></label>
+        <div class="upload-area" id="upload-area">
+          <input type="file" id="file-upload" accept=".txt,.md,.text,.pdf" onchange="handleFile(this)">
+          <div class="upload-icon">📄</div>
+          <div class="upload-label">Arrastra tu archivo aquí o <strong>haz clic</strong></div>
+          <div class="upload-hint">.txt · .md · .pdf</div>
+        </div>
+        <div class="file-preview" id="file-preview">
+          <span id="file-icon" style="font-size:20px">📄</span>
+          <span class="file-name" id="file-name"></span>
+          <span class="file-size" id="file-size"></span>
+          <button class="btn-icon" onclick="clearFile()">✕</button>
+        </div>
+        <div id="pdf-progress" style="display:none;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:8px;"></div>
+        <label style="margin-top:14px;">O pega tu texto aquí</label>
+        <textarea id="manuscript-text" rows="8" placeholder="Pega aquí Material y Métodos, Resultados, o cualquier texto parcial del artículo..."></textarea>
+        <label>Palabras clave adicionales</label>
+        <input type="text" id="extra-keywords" placeholder="ej. randomized controlled trial, systematic review...">
+        <div id="step2-error" class="error-banner"></div>
+        <div class="step-nav"><button class="btn btn-ghost" onclick="goStep(1)">← Atrás</button><button class="btn btn-primary" onclick="goStep(3)">Siguiente: Fuentes →</button></div>
+      </div>
+    </div>
+
+    <div class="step" id="step3">
+      <div class="step-label">Paso 3 de 4 — Fuentes y normas</div>
+      <div class="card">
+        <h2>Fuentes y parámetros de revista</h2>
+        <p class="hint">Activa las bases de datos a consultar y configura las normas editoriales de la revista destino.</p>
+        <label>Fuentes bibliográficas</label>
+        <div class="sources-grid">
+          <label class="source-toggle active" id="src-pubmed"><input type="checkbox" checked onchange="toggleSource(this,'src-pubmed')"><div class="source-dot"></div><div><div class="source-name">🧬 PubMed</div><div class="source-desc">37M biomédicos</div></div></label>
+          <label class="source-toggle active" id="src-semantic"><input type="checkbox" checked onchange="toggleSource(this,'src-semantic')"><div class="source-dot"></div><div><div class="source-name">🔭 Semantic Scholar</div><div class="source-desc">220M papers</div></div></label>
+          <label class="source-toggle active" id="src-arxiv"><input type="checkbox" checked onchange="toggleSource(this,'src-arxiv')"><div class="source-dot"></div><div><div class="source-name">📐 arXiv</div><div class="source-desc">Preprints multidisciplinar</div></div></label>
+          <label class="source-toggle" id="src-tavily"><input type="checkbox" onchange="toggleSource(this,'src-tavily')"><div class="source-dot"></div><div><div class="source-name">🌐 Tavily Web</div><div class="source-desc">Web tiempo real</div></div></label>
+          <label class="source-toggle" id="src-serper"><input type="checkbox" onchange="toggleSource(this,'src-serper')"><div class="source-dot"></div><div><div class="source-name">🔍 Serper Scholar</div><div class="source-desc">Google Scholar</div></div></label>
+          <label class="source-toggle" id="src-openalex"><input type="checkbox" onchange="toggleSource(this,'src-openalex')"><div class="source-dot"></div><div><div class="source-name">🌍 OpenAlex</div><div class="source-desc">250M · sin key</div></div></label>
+        </div>
+        <label style="margin-top:20px;">Preset de revista</label>
+        <div class="journal-presets">
+          <button class="preset-btn active" onclick="applyPreset('custom',this)">Custom</button>
+          <button class="preset-btn" onclick="applyPreset('nejm',this)">NEJM</button>
+          <button class="preset-btn" onclick="applyPreset('lancet',this)">Lancet</button>
+          <button class="preset-btn" onclick="applyPreset('bmj',this)">BMJ</button>
+          <button class="preset-btn" onclick="applyPreset('plos',this)">PLOS ONE</button>
+          <button class="preset-btn" onclick="applyPreset('jama',this)">JAMA</button>
+          <button class="preset-btn" onclick="applyPreset('nature',this)">Nature Med</button>
+        </div>
+        <div class="params-grid">
+          <div><label>Palabras intro</label><input type="text" id="p-intro-words" value="500" oninput="computeCostEstimate()"></div>
+          <div><label>Palabras M&amp;M</label><input type="text" id="p-mm-words" value="800" oninput="computeCostEstimate()"></div>
+          <div><label>Palabras discusión</label><input type="text" id="p-disc-words" value="1000" oninput="computeCostEstimate()"></div>
+          <div><label>Palabras conclusiones</label><input type="text" id="p-conc-words" value="200" oninput="computeCostEstimate()"></div>
+          <div><label>Refs máximas</label><input type="text" id="p-max-refs" value="40"></div>
+          <div><label>Palabras abstract</label><input type="text" id="p-abstract-words" value="250" oninput="computeCostEstimate()"></div>
+          <div class="full"><label>Formato citas</label><select id="p-cite-style"><option value="vancouver">Vancouver [1]</option><option value="apa">APA (Autor, año)</option><option value="ieee">IEEE [1]</option><option value="chicago">Chicago</option></select></div>
+          <div class="full"><label>Idioma</label><select id="p-lang"><option value="Español">Español</option><option value="English">English</option><option value="Português">Português</option></select></div>
+        </div>
+        <label style="margin-top:16px;">Secciones a generar</label>
+        <div class="section-toggles">
+          <label class="sec-toggle active" id="sec-abstract"><input type="checkbox" checked onchange="toggleSecGen(this,'sec-abstract')"><span class="sec-icon">📋</span><span class="sec-name">Abstract</span></label>
+          <label class="sec-toggle active" id="sec-intro"><input type="checkbox" checked onchange="toggleSecGen(this,'sec-intro')"><span class="sec-icon">📖</span><span class="sec-name">Introducción</span></label>
+          <label class="sec-toggle active" id="sec-mm"><input type="checkbox" checked onchange="toggleSecGen(this,'sec-mm')"><span class="sec-icon">🔬</span><span class="sec-name">M&amp;M</span></label>
+          <label class="sec-toggle active" id="sec-disc"><input type="checkbox" checked onchange="toggleSecGen(this,'sec-disc')"><span class="sec-icon">💬</span><span class="sec-name">Discusión</span></label>
+          <label class="sec-toggle active" id="sec-conc"><input type="checkbox" checked onchange="toggleSecGen(this,'sec-conc')"><span class="sec-icon">✅</span><span class="sec-name">Conclusiones</span></label>
+          <label class="sec-toggle active" id="sec-refs"><input type="checkbox" checked onchange="toggleSecGen(this,'sec-refs')"><span class="sec-icon">📚</span><span class="sec-name">Referencias</span></label>
+        </div>
+        <label style="margin-top:16px;">Instrucciones especiales</label>
+        <textarea id="p-special" rows="2" placeholder="ej. Solo ensayos clínicos. Enfoque clínico-práctico. Excluir revisiones narrativas..."></textarea>
+        <label>Modelo OpenAI</label>
+        <select id="p-model" onchange="computeCostEstimate()">
+          <option value="gpt-4o-mini">gpt-4o-mini — rápido y económico ✅</option>
+          <option value="gpt-4o">gpt-4o — alta calidad</option>
+          <option value="gpt-4-turbo">gpt-4-turbo</option>
+        </select>
+        <div id="step3-error" class="error-banner"></div>
+        <div class="step-nav"><button class="btn btn-ghost" onclick="goStep(2)">← Atrás</button><button class="btn btn-primary" onclick="goStep(4)">Ver resumen →</button></div>
+      </div>
+    </div>
+
+    <div class="step" id="step4">
+      <div class="step-label">Paso 4 de 4 — Resumen y lanzar</div>
+      <div class="card">
+        <h2>Todo listo</h2>
+        <p class="hint">Revisa la configuración antes de generar.</p>
+        <div id="summary-box" style="background:var(--paper);border:1px solid var(--border);border-radius:3px;padding:16px 20px;font-size:13px;line-height:1.9;font-family:'IBM Plex Mono',monospace;"></div>
+        <div class="cost-estimate">
+          <div class="cost-item"><div class="cost-val" id="est-time">—</div><div class="cost-lbl">Tiempo est.</div></div>
+          <div class="cost-item"><div class="cost-val" id="est-cost">—</div><div class="cost-lbl">Coste est.</div></div>
+          <div class="cost-item"><div class="cost-val" id="est-tokens">—</div><div class="cost-lbl">Tokens</div></div>
+          <div class="cost-item"><div class="cost-val" id="est-words">—</div><div class="cost-lbl">Palabras obj.</div></div>
+        </div>
+        <div class="step-nav"><button class="btn btn-ghost" onclick="goStep(3)">← Atrás</button><button class="btn btn-primary" onclick="launchApp()" style="padding:13px 32px;font-size:14px;">✍ Generar artículo</button></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="app">
+  <div class="app-topbar">
+    <div class="app-logo">Manu<span>scriptor</span></div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-info" id="tb-topic">—</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-status"><div class="status-dot" id="global-dot"></div><span id="global-status">Iniciando…</span></div>
+    <div class="topbar-divider"></div>
+    <button class="btn btn-ghost btn-sm" style="color:rgba(255,255,255,.5);border-color:rgba(255,255,255,.15);" onclick="resetApp()">✦ Nueva sesión</button>
+  </div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
+  <div class="app-body">
+
+    <div class="pipeline-panel">
+      <div class="panel-section-title">Pipeline</div>
+      <div class="phase-item" id="ph-analyzer"><div class="phase-num">1</div><div><div class="phase-label">Analyzer</div><div class="phase-sub">Lee manuscrito</div></div></div>
+      <div class="phase-item" id="ph-scout"><div class="phase-num">2</div><div><div class="phase-label">Scout</div><div class="phase-sub">Genera queries</div></div></div>
+      <div class="phase-item" id="ph-fetcher"><div class="phase-num">3</div><div><div class="phase-label">Fetcher</div><div class="phase-sub">Busca literatura</div></div></div>
+      <div class="phase-item" id="ph-librarian"><div class="phase-num">4</div><div><div class="phase-label">Librarian</div><div class="phase-sub">Rankea papers</div></div></div>
+      <div class="phase-item" id="ph-writer"><div class="phase-num">5</div><div><div class="phase-label">Writer</div><div class="phase-sub">Streaming ↻</div></div></div>
+      <div class="phase-item" id="ph-critic"><div class="phase-num">6</div><div><div class="phase-label">Critic</div><div class="phase-sub">Valida calidad</div></div></div>
+      <div class="panel-section-title" style="margin-top:8px;">Secciones</div>
+      <div class="section-list" id="section-list"></div>
+      <div style="flex:1"></div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val" id="stat-papers">—</div><div class="stat-lbl">Papers</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-words">—</div><div class="stat-lbl">Palabras</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-refs">—</div><div class="stat-lbl">Citas</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-time">—</div><div class="stat-lbl">Tiempo</div></div>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div class="log-header"><div class="log-title">Log técnico</div><button class="btn-icon" style="color:rgba(255,255,255,.3);font-size:12px;border-color:rgba(255,255,255,.1);" onclick="clearLog()">↻</button></div>
+      <div id="log-output"></div>
+    </div>
+
+    <div class="article-panel">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('article',this)">📄 Artículo</button>
+        <button class="tab-btn" onclick="switchTab('papers',this)">📚 Papers</button>
+        <button class="tab-btn" onclick="switchTab('history',this)">🕓 Historial</button>
+      </div>
+      <div class="critic-bar" id="critic-bar" style="display:none;"></div>
+
+      <div class="tab-pane active" id="tab-article">
+        <div id="article-output">
+          <div class="placeholder-art">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="4" width="36" height="48" rx="2" stroke="#c8902a" stroke-width="2"/><line x1="16" y1="16" x2="36" y2="16" stroke="#c8902a" stroke-width="2"/><line x1="16" y1="24" x2="36" y2="24" stroke="#c8902a" stroke-width="2"/><line x1="16" y1="32" x2="28" y2="32" stroke="#c8902a" stroke-width="2"/></svg>
+            <p>El artículo se construirá aquí</p>
+            <div class="hint">Sección a sección, con streaming en tiempo real y citas inline</div>
+          </div>
+        </div>
+        <div class="export-bar" id="export-bar">
+          <span class="export-label">Exportar:</span>
+          <button class="btn btn-ghost btn-sm" onclick="exportAs('md')">⬇ Markdown</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportAs('txt')">⬇ Texto</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportAs('tex')">⬇ LaTeX</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportAs('docx')">⬇ Word (.docx)</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyAll()">📋 Copiar</button>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tab-papers">
+        <div class="papers-list" id="papers-list"><p style="color:var(--muted);font-size:13px;padding:20px;text-align:center;">Los papers encontrados aparecerán aquí.</p></div>
+      </div>
+
+      <div class="tab-pane" id="tab-history">
+        <div class="history-panel" id="history-panel"><div class="history-empty">Aún no hay artículos guardados.<br>Cada artículo completado se guarda automáticamente en tu navegador.</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="cite-tooltip" id="cite-tooltip"><div class="ct-title" id="ct-title"></div><div class="ct-meta" id="ct-meta"></div></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+const S={
+  openaiKey:'',tavilyKey:'',serperKey:'',
+  topic:'',manuscript:'',extraKeywords:'',
+  sources:{pubmed:true,semantic:true,arxiv:true,tavily:false,serper:false,openalex:false},
+  sections:{abstract:true,intro:true,mm:true,disc:true,conc:true,refs:true},
+  params:{introWords:500,mmWords:800,discWords:1000,concWords:200,maxRefs:40,abstractWords:250,citeStyle:'vancouver',lang:'Español',model:'gpt-4o-mini',special:''},
+  papers:[],articleSections:{},sectionOrder:[],
+  running:false,startTime:null,abortFlag:false,analysis:null
+};
+const SEC_LABELS={abstract:'Abstract',intro:'Introducción',mm:'Material y Métodos',disc:'Discusión',conc:'Conclusiones',refs:'Referencias'};
+
+// ── IndexedDB (#4) ─────────────────────────────────────
+let db=null;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('manuscriptor_v2',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('articles',{keyPath:'id',autoIncrement:true});r.onsuccess=e=>{db=e.target.result;res(db);};r.onerror=()=>rej(r.error);});}
+async function saveArticle(d){if(!db)return;return new Promise((res,rej)=>{const tx=db.transaction('articles','readwrite');tx.objectStore('articles').add(d);tx.oncomplete=res;tx.onerror=rej;});}
+async function getArticles(){if(!db)return[];return new Promise((res,rej)=>{const tx=db.transaction('articles','readonly');const r=tx.objectStore('articles').getAll();r.onsuccess=()=>res(r.result);r.onerror=rej;});}
+async function deleteArticle(id){if(!db)return;return new Promise((res,rej)=>{const tx=db.transaction('articles','readwrite');tx.objectStore('articles').delete(id);tx.oncomplete=res;tx.onerror=rej;});}
+
+// ── PDF Extraction (#7) ────────────────────────────────
+async function extractPDFText(file){
+  if(typeof pdfjsLib==='undefined') throw new Error('pdf.js no disponible — sube un .txt en su lugar');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let txt='';
+  for(let i=1;i<=Math.min(pdf.numPages,20);i++){const page=await pdf.getPage(i);const c=await page.getTextContent();txt+=c.items.map(it=>it.str).join(' ')+'\n';}
+  return txt.trim();
+}
+
+// ── Onboarding ─────────────────────────────────────────
+let currentStep=1;
+function goStep(n){
+  if(n===2){const k=document.getElementById('openai-key').value.trim();if(!k){showErr('step1-error','Introduce tu OpenAI API key para continuar.');return;}hideErr('step1-error');}
+  if(n===3){const t=document.getElementById('article-topic').value.trim();if(!t){showErr('step2-error','Introduce el tema del artículo.');return;}hideErr('step2-error');}
+  if(n===4){buildSummary();computeCostEstimate();hideErr('step3-error');}
+  document.getElementById('step'+currentStep).classList.remove('active');
+  currentStep=n;
+  document.getElementById('step'+currentStep).classList.add('active');
+  updateStepIndicator();
+}
+function updateStepIndicator(){
+  for(let i=1;i<=4;i++){
+    const d=document.getElementById('sd'+i),l=document.getElementById('sl'+i);
+    d.classList.remove('active','done');
+    if(i<currentStep){d.classList.add('done');d.textContent='✓';}
+    else if(i===currentStep){d.classList.add('active');d.textContent=i;}
+    else d.textContent=i;
+    if(l){l.classList.remove('done');if(i<currentStep)l.classList.add('done');}
+  }
+}
+function showErr(id,m){const e=document.getElementById(id);e.textContent=m;e.classList.add('visible');}
+function hideErr(id){document.getElementById(id).classList.remove('visible');}
+function toggleKey(id){const e=document.getElementById(id);e.type=e.type==='password'?'text':'password';}
+function clearKey(id){document.getElementById(id).value='';}
+
+async function handleFile(input){
+  const file=input.files[0];if(!file)return;
+  document.getElementById('file-name').textContent=file.name;
+  document.getElementById('file-size').textContent=(file.size/1024).toFixed(1)+' KB';
+  document.getElementById('file-preview').classList.add('visible');
+  const pp=document.getElementById('pdf-progress');
+  if(file.name.toLowerCase().endsWith('.pdf')){
+    document.getElementById('file-icon').textContent='📕';
+    pp.style.display='block';pp.style.color='var(--muted)';pp.textContent='⏳ Extrayendo texto del PDF…';
+    try{
+      const txt=await extractPDFText(file);
+      document.getElementById('manuscript-text').value=txt.substring(0,15000);
+      pp.style.color='var(--sage)';pp.textContent='✓ PDF extraído: '+txt.length+' caracteres';
+    }catch(e){pp.style.color='var(--rust)';pp.textContent='✗ Error PDF: '+e.message;}
+  }else{
+    document.getElementById('file-icon').textContent='📄';pp.style.display='none';
+    const r=new FileReader();r.onload=e=>document.getElementById('manuscript-text').value=e.target.result;r.readAsText(file);
+  }
+}
+function clearFile(){document.getElementById('file-upload').value='';document.getElementById('file-preview').classList.remove('visible');document.getElementById('pdf-progress').style.display='none';}
+function toggleSource(el,id){document.getElementById(id).classList.toggle('active',el.checked);}
+function toggleSecGen(el,id){document.getElementById(id).classList.toggle('active',el.checked);}
+
+const PRESETS={custom:{},nejm:{introWords:600,mmWords:1000,discWords:1200,concWords:0,maxRefs:30,abstractWords:200,citeStyle:'vancouver'},lancet:{introWords:500,mmWords:900,discWords:1200,concWords:0,maxRefs:35,abstractWords:250,citeStyle:'vancouver'},bmj:{introWords:400,mmWords:800,discWords:1000,concWords:150,maxRefs:30,abstractWords:250,citeStyle:'vancouver'},plos:{introWords:700,mmWords:1200,discWords:1500,concWords:200,maxRefs:60,abstractWords:300,citeStyle:'apa'},jama:{introWords:500,mmWords:900,discWords:1100,concWords:0,maxRefs:30,abstractWords:350,citeStyle:'vancouver'},nature:{introWords:600,mmWords:800,discWords:1200,concWords:0,maxRefs:50,abstractWords:150,citeStyle:'vancouver'}};
+function applyPreset(name,btn){
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const p=PRESETS[name];if(!p||!Object.keys(p).length)return;
+  const s=(id,v)=>{const e=document.getElementById(id);if(e&&v!==undefined)e.value=v;};
+  s('p-intro-words',p.introWords);s('p-mm-words',p.mmWords);s('p-disc-words',p.discWords);s('p-conc-words',p.concWords);s('p-max-refs',p.maxRefs);s('p-abstract-words',p.abstractWords);s('p-cite-style',p.citeStyle);
+  computeCostEstimate();
+}
+
+// ── Cost Estimate (#9) ─────────────────────────────────
+const MODEL_COSTS={'gpt-4o-mini':{in:0.15,out:0.60},'gpt-4o':{in:2.50,out:10.00},'gpt-4-turbo':{in:10.00,out:30.00}};
+function computeCostEstimate(){
+  const model=document.getElementById('p-model')?.value||'gpt-4o-mini';
+  const g=id=>+(document.getElementById(id)?.value||0);
+  const outWords=g('p-intro-words')+g('p-mm-words')+g('p-disc-words')+g('p-conc-words')+g('p-abstract-words');
+  const outTok=Math.round(outWords*1.35);const inTok=Math.round(outTok*3.5+4000);
+  const pr=MODEL_COSTS[model]||MODEL_COSTS['gpt-4o-mini'];
+  const cost=(inTok/1e6)*pr.in+(outTok/1e6)*pr.out;
+  const totalTok=inTok+outTok;
+  const estSec=Math.round(outTok/(model==='gpt-4o-mini'?1500:400)+50);
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('est-time',estSec<60?estSec+'s':'~'+Math.round(estSec/60)+' min');
+  set('est-cost','$'+cost.toFixed(3));
+  set('est-tokens',totalTok>1000?(totalTok/1000).toFixed(1)+'K':totalTok);
+  set('est-words',outWords.toLocaleString());
+}
+function buildSummary(){
+  const t=document.getElementById('article-topic').value.trim();
+  const ms=document.getElementById('manuscript-text').value.trim();
+  const sr=['pubmed','semantic','arxiv','tavily','serper','openalex'].filter(s=>document.getElementById('src-'+s).querySelector('input').checked);
+  const se=['abstract','intro','mm','disc','conc','refs'].filter(s=>document.getElementById('sec-'+s).querySelector('input').checked);
+  document.getElementById('summary-box').innerHTML=`<b>Tema:</b> ${t}<br><b>Manuscrito:</b> ${ms?ms.length+' chars':'— (solo tema)'}<br><b>Fuentes:</b> ${sr.join(', ')}<br><b>Secciones:</b> ${se.join(', ')}<br><b>Modelo:</b> ${document.getElementById('p-model').value} · <b>Idioma:</b> ${document.getElementById('p-lang').value} · <b>Refs máx:</b> ${document.getElementById('p-max-refs').value} · <b>Citas:</b> ${document.getElementById('p-cite-style').value}`;
+}
+function launchApp(){
+  S.openaiKey=document.getElementById('openai-key').value.trim();S.tavilyKey=document.getElementById('tavily-key').value.trim();S.serperKey=document.getElementById('serper-key').value.trim();
+  S.topic=document.getElementById('article-topic').value.trim();S.manuscript=document.getElementById('manuscript-text').value.trim();S.extraKeywords=document.getElementById('extra-keywords').value.trim();
+  if(document.getElementById('save-keys').checked){localStorage.setItem('ms_openai',S.openaiKey);localStorage.setItem('ms_tavily',S.tavilyKey);localStorage.setItem('ms_serper',S.serperKey);}
+  ['pubmed','semantic','arxiv','tavily','serper','openalex'].forEach(src=>{S.sources[src]=document.getElementById('src-'+src).querySelector('input').checked;});
+  ['abstract','intro','mm','disc','conc','refs'].forEach(sec=>{S.sections[sec]=document.getElementById('sec-'+sec).querySelector('input').checked;});
+  S.params={introWords:+document.getElementById('p-intro-words').value||500,mmWords:+document.getElementById('p-mm-words').value||800,discWords:+document.getElementById('p-disc-words').value||1000,concWords:+document.getElementById('p-conc-words').value||200,maxRefs:+document.getElementById('p-max-refs').value||40,abstractWords:+document.getElementById('p-abstract-words').value||250,citeStyle:document.getElementById('p-cite-style').value,lang:document.getElementById('p-lang').value,model:document.getElementById('p-model').value,special:document.getElementById('p-special').value.trim()};
+  document.getElementById('onboarding').style.display='none';document.getElementById('app').classList.add('visible');
+  document.getElementById('tb-topic').innerHTML='<strong>'+S.topic.substring(0,50)+(S.topic.length>50?'…':'')+'</strong>';
+  buildSectionList();runPipeline();
+}
+
+// ── Log ────────────────────────────────────────────────
+function log(msg,type='info'){const el=document.getElementById('log-output');const ts=new Date().toTimeString().split(' ')[0];const l=document.createElement('div');l.className='log-line '+type;l.innerHTML='<span class="log-time">'+ts+'</span>'+msg;el.appendChild(l);el.scrollTop=el.scrollHeight;}
+function clearLog(){document.getElementById('log-output').innerHTML='';}
+function setPhase(id,state){const el=document.getElementById('ph-'+id);if(!el)return;el.classList.remove('running','done','error');el.classList.add(state);}
+function setGlobalStatus(text,state){document.getElementById('global-status').textContent=text;document.getElementById('global-dot').className='status-dot '+(state||'');}
+function setProgress(pct){document.getElementById('progress-bar').style.width=pct+'%';}
+
+// ── Section list ───────────────────────────────────────
+function buildSectionList(){
+  const list=document.getElementById('section-list');list.innerHTML='';
+  S.sectionOrder=['abstract','intro','mm','disc','conc','refs'].filter(s=>S.sections[s]);
+  S.sectionOrder.forEach(sec=>{
+    const item=document.createElement('div');item.className='sec-item';item.id='sli-'+sec;
+    item.innerHTML='<span class="sec-status" id="sst-'+sec+'">⬜</span><span>'+SEC_LABELS[sec]+'</span><button class="regen-btn" onclick="regenSection(\''+sec+'\',event)">↻</button>';
+    item.addEventListener('click',e=>{if(!e.target.classList.contains('regen-btn'))scrollToSection(sec);});
+    list.appendChild(item);
+  });
+}
+function initArticleOutput(){
+  const out=document.getElementById('article-output');
+  out.innerHTML='<h1 id="art-title">'+S.topic+'</h1><div class="meta-line">Manuscriptor v2 · '+new Date().toLocaleDateString('es-ES')+' · Modelo: '+S.params.model+' · '+S.params.lang+'</div>';
+  S.sectionOrder.forEach(sec=>{
+    if(sec==='refs')return;
+    const div=document.createElement('div');div.className='section-block';div.id='sec-block-'+sec;
+    div.innerHTML='<h2>'+SEC_LABELS[sec]+'<button class="h2-edit-btn" onclick="toggleEdit(\''+sec+'\',this)">✏ Editar</button></h2><div id="sec-content-'+sec+'" class="typing-cursor" style="color:var(--muted);font-style:italic;font-size:13px;">Pendiente de generación…</div>';
+    out.appendChild(div);
+  });
+  if(S.sections.refs){const rd=document.createElement('div');rd.className='references-block';rd.id='refs-block';rd.innerHTML='<h2>Referencias</h2><div id="refs-content"><p style="color:var(--muted);font-size:13px;font-style:italic;">Se generarán al final.</p></div>';out.appendChild(rd);}
+}
+
+// ── Streaming (#1) ────────────────────────────────────
+async function callOpenAIStream(messages,maxTokens,temperature,onChunk){
+  const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.openaiKey},body:JSON.stringify({model:S.params.model,messages,max_tokens:maxTokens,temperature,stream:true})});
+  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'HTTP '+res.status);}
+  const reader=res.body.getReader();const decoder=new TextDecoder();let full='';
+  while(true){
+    const{done,value}=await reader.read();if(done)break;
+    const chunk=decoder.decode(value);
+    for(const line of chunk.split('\n')){
+      if(!line.startsWith('data: '))continue;const d=line.slice(6).trim();if(d==='[DONE]')break;
+      try{const delta=JSON.parse(d).choices?.[0]?.delta?.content||'';if(delta){full+=delta;onChunk(delta,full);}}catch(e){}
+    }
+  }
+  return full;
+}
+async function callOpenAI(messages,maxTokens=1000,temperature=0.3,retries=3){
+  for(let a=1;a<=retries;a++){
+    try{
+      const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.openaiKey},body:JSON.stringify({model:S.params.model,messages,max_tokens:maxTokens,temperature})});
+      if(res.status===429){const w=Math.pow(2,a)*1000;log('Rate limit → reintentando en '+w/1000+'s…','warn');await new Promise(r=>setTimeout(r,w));continue;}
+      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'HTTP '+res.status);}
+      return (await res.json()).choices[0].message.content;
+    }catch(e){if(a===retries)throw e;const w=Math.pow(2,a)*1000;log('Error API ('+a+'/'+retries+') → reintentando…','warn');await new Promise(r=>setTimeout(r,w));}
+  }
+}
+async function streamToSection(sec,sys,usr,maxTok){
+  return new Promise(async(resolve,reject)=>{
+    const el=document.getElementById('sec-content-'+sec);
+    if(el){el.className='typing-cursor';el.innerHTML='';}
+    let full='';
+    try{
+      full=await callOpenAIStream([{role:'system',content:sys},{role:'user',content:usr}],maxTok,0.7,(delta,acc)=>{
+        if(el) el.innerHTML=markdownToHtml(acc)+'<span class="typing-cursor"></span>';
+      });
+      if(el){el.className='section-content';el.innerHTML=markdownToHtml(full);}
+      S.articleSections[sec]=full;resolve(full);
+    }catch(e){reject(e);}
+  });
+}
+
+// ── Edit inline (#5) ──────────────────────────────────
+function toggleEdit(sec,btn){
+  const el=document.getElementById('sec-content-'+sec);if(!el)return;
+  const isEdit=el.contentEditable==='true';
+  if(isEdit){el.contentEditable='false';btn.textContent='✏ Editar';btn.classList.remove('active');S.articleSections[sec]=el.innerText||el.textContent;log('Sección '+SEC_LABELS[sec]+' guardada','ok');}
+  else{el.contentEditable='true';el.focus();btn.textContent='💾 Guardar';btn.classList.add('active');log('Editando '+SEC_LABELS[sec]+'…','info');}
+}
+
+// ── Regen section (#2) ────────────────────────────────
+async function regenSection(sec,e){
+  if(e)e.stopPropagation();
+  if(S.running){log('Pipeline en ejecución','warn');return;}
+  if(!S.papers.length){log('Ejecuta primero el pipeline completo','warn');return;}
+  log('↻ Regenerando '+SEC_LABELS[sec]+'…','agent');
+  document.getElementById('sst-'+sec).textContent='⏳';
+  const{systemPrompt,userPrompt,maxTokens}=buildSectionPrompt(sec);
+  try{
+    const text=await streamToSection(sec,systemPrompt,userPrompt,maxTokens);
+    document.getElementById('sst-'+sec).textContent='✅';
+    log('✓ '+SEC_LABELS[sec]+' regenerada — '+countWords(text)+'w','ok');
+    runCriticOnSection(sec,text);
+  }catch(err){log('✗ Error: '+err.message,'err');document.getElementById('sst-'+sec).textContent='❌';}
+}
+
+// ── Deduplication (#8) ────────────────────────────────
+function deduplicatePapers(papers){
+  const seen=new Set();
+  return papers.filter(p=>{
+    if(!p.title||p.title.length<5)return false;
+    if(p.doi){const k='doi:'+p.doi.replace(/https?:\/\/(dx\.)?doi\.org\//i,'').toLowerCase().trim();if(seen.has(k))return false;if(k.length>5)seen.add(k);}
+    if(p.abstract&&p.abstract.length>50){const k='abs:'+p.abstract.toLowerCase().replace(/[^a-z0-9]/g,'').substring(10,60);if(seen.has(k))return false;seen.add(k);}
+    const k='ttl:'+p.title.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0,50);
+    if(seen.has(k))return false;seen.add(k);return true;
+  });
+}
+
+// ── Fetchers ──────────────────────────────────────────
+async function fetchPubMed(query,n=8){try{const base='https://eutils.ncbi.nlm.nih.gov/entrez/eutils/';const sr=await fetch(base+'esearch.fcgi?db=pubmed&term='+encodeURIComponent(query)+'&retmax='+n+'&retmode=json&sort=relevance');const sd=await sr.json();const ids=sd.esearchresult?.idlist||[];if(!ids.length)return[];const fr=await fetch(base+'efetch.fcgi?db=pubmed&id='+ids.join(',')+'&retmode=xml&rettype=abstract');const xml=new DOMParser().parseFromString(await fr.text(),'text/xml');return Array.from(xml.querySelectorAll('PubmedArticle')).map(art=>{const title=art.querySelector('ArticleTitle')?.textContent||'';const abstract=art.querySelector('AbstractText')?.textContent||'';const authors=Array.from(art.querySelectorAll('Author')).slice(0,6).map(a=>(a.querySelector('LastName')?.textContent||'')+(a.querySelector('Initials')?.textContent?' '+a.querySelector('Initials').textContent:''));const year=art.querySelector('PubDate Year')?.textContent||art.querySelector('MedlineDate')?.textContent?.split(' ')[0]||'';const journal=art.querySelector('ISOAbbreviation')?.textContent||'';const doi=art.querySelector('ArticleId[IdType="doi"]')?.textContent||'';return title?{title,abstract:abstract.substring(0,500),authors,year,journal,doi,source:'PubMed'}:null;}).filter(Boolean);}catch(e){log('PubMed: '+e.message,'warn');return[];}}
+async function fetchSemanticScholar(query,n=8){try{const r=await fetch('https://api.semanticscholar.org/graph/v1/paper/search?query='+encodeURIComponent(query)+'&limit='+n+'&fields=title,abstract,authors,year,venue,externalIds,citationCount');const d=await r.json();return(d.data||[]).map(p=>({title:p.title||'',abstract:(p.abstract||'').substring(0,500),authors:(p.authors||[]).slice(0,6).map(a=>a.name),year:p.year||'',journal:p.venue||'',doi:p.externalIds?.DOI||'',citations:p.citationCount||0,source:'Semantic Scholar'}));}catch(e){log('S2: '+e.message,'warn');return[];}}
+async function fetchArXiv(query,n=5){try{const r=await fetch('https://export.arxiv.org/api/query?search_query=all:'+encodeURIComponent(query)+'&max_results='+n+'&sortBy=relevance');const xml=new DOMParser().parseFromString(await r.text(),'application/xml');return Array.from(xml.querySelectorAll('entry')).map(e=>({title:e.querySelector('title')?.textContent?.trim()||'',abstract:(e.querySelector('summary')?.textContent?.trim()||'').substring(0,500),authors:Array.from(e.querySelectorAll('author name')).slice(0,6).map(a=>a.textContent),year:e.querySelector('published')?.textContent?.substring(0,4)||'',journal:'arXiv',doi:e.querySelector('id')?.textContent||'',source:'arXiv'}));}catch(e){log('arXiv: '+e.message,'warn');return[];}}
+async function fetchTavily(query){if(!S.tavilyKey)return[];try{const r=await fetch('https://api.tavily.com/search',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.tavilyKey},body:JSON.stringify({query,search_depth:'advanced',max_results:6,include_domains:['pubmed.ncbi.nlm.nih.gov','nature.com','nejm.org','sciencedirect.com','bmj.com','thelancet.com']})});const d=await r.json();return(d.results||[]).map(r=>({title:r.title||'',abstract:(r.content||'').substring(0,500),authors:[],year:'',journal:(r.url||'').split('/')[2]||'',doi:r.url||'',source:'Tavily Web'}));}catch(e){log('Tavily: '+e.message,'warn');return[];}}
+async function fetchSerper(query){if(!S.serperKey)return[];try{const r=await fetch('https://google.serper.dev/scholar',{method:'POST',headers:{'Content-Type':'application/json','X-API-KEY':S.serperKey},body:JSON.stringify({q:query,num:6})});const d=await r.json();return(d.organic||[]).map(r=>({title:r.title||'',abstract:(r.snippet||'').substring(0,500),authors:r.authors||[],year:r.year||'',journal:r.publication||'',doi:r.link||'',source:'Serper Scholar'}));}catch(e){log('Serper: '+e.message,'warn');return[];}}
+async function fetchOpenAlex(query,n=6){try{const r=await fetch('https://api.openalex.org/works?search='+encodeURIComponent(query)+'&per_page='+n+'&select=title,abstract_inverted_index,authorships,publication_year,primary_location,doi,cited_by_count',{headers:{'User-Agent':'Manuscriptor/2.0 (mailto:fborrasumh@gmail.com)'}});const d=await r.json();return(d.results||[]).map(p=>{let ab='';if(p.abstract_inverted_index){const w={};Object.entries(p.abstract_inverted_index).forEach(([wd,ps])=>ps.forEach(pos=>w[pos]=wd));ab=Object.keys(w).sort((a,b)=>a-b).map(k=>w[k]).join(' ').substring(0,500);}return{title:p.title||'',abstract:ab,authors:(p.authorships||[]).slice(0,6).map(a=>a.author?.display_name||''),year:p.publication_year||'',journal:p.primary_location?.source?.display_name||'',doi:p.doi||'',citations:p.cited_by_count||0,source:'OpenAlex'};});}catch(e){log('OpenAlex: '+e.message,'warn');return[];}}
+
+// ── Section prompt builder ─────────────────────────────
+function buildSectionPrompt(sec){
+  const pc=S.papers.map(p=>'['+p.citNum+'] '+p.title+'. '+(p.authors||[]).slice(0,3).join(', ')+'('+(p.year||'s.f.')+').'+(p.journal?' '+p.journal+'.':'')+'\n'+(p.abstract?'Abstract: '+p.abstract:'')).join('\n\n');
+  const ci=S.params.citeStyle==='apa'?'Usa citas APA inline: (Apellido et al., año).':'Usa citas numéricas Vancouver [1], [2], [1,3]. Cada afirmación clave debe tener su cita.';
+  const sys='Eres un redactor científico experto. Escribes en '+S.params.lang+'.\n'+ci+'\nCada párrafo debe tener al menos 1-2 citas inline. Cita CONFORME LOS USES en el texto.\n'+(S.params.special?'Instrucciones: '+S.params.special+'\n':'')+'Manuscrito del autor:\n'+(S.manuscript?S.manuscript.substring(0,2500):'(no disponible)')+'\n\nPapers para citar:\n'+pc;
+  const wl={abstract:S.params.abstractWords,intro:S.params.introWords,mm:S.params.mmWords,disc:S.params.discWords,conc:S.params.concWords}[sec]||500;
+  const w=wl>0?wl:200;
+  const prompts={
+    abstract:'Escribe un ABSTRACT estructurado (~'+w+' palabras) para el artículo: "'+S.topic+'".\nEstructura: Objetivo | Métodos | Resultados | Conclusión.\nSin citas en el abstract. Solo el texto.',
+    intro:'Escribe la INTRODUCCIÓN del artículo: "'+S.topic+'" (~'+w+' palabras).\n(1) Relevancia y epidemiología con citas, (2) Estado del arte con citas extensas, (3) Gaps en la literatura, (4) Objetivo e hipótesis. Solo el texto.',
+    mm:'Escribe MATERIAL Y MÉTODOS para: "'+S.topic+'" (~'+w+' palabras).\n'+(S.manuscript?'Usa el texto del autor como base y expándelo.':'Infiere los métodos adecuados.')+'\nDiseño, población, criterios, variables, mediciones (cita papers de validación), análisis estadístico. Solo el texto.',
+    disc:'Escribe la DISCUSIÓN para: "'+S.topic+'" (~'+w+' palabras).\n(1) Hallazgo principal, (2) Comparación con literatura con citas, (3) Mecanismos explicativos, (4) Fortalezas y limitaciones, (5) Implicaciones y líneas futuras. Solo el texto.',
+    conc:'Escribe las CONCLUSIONES para: "'+S.topic+'" (~'+w+' palabras). Sintetiza hallazgos, relevancia y próximos pasos. 1-2 citas clave. Solo el texto.'
+  };
+  return{systemPrompt:sys,userPrompt:prompts[sec]||'',maxTokens:Math.round(w*1.5)+200};
+}
+
+// ── Critic agent (#2) ─────────────────────────────────
+async function runCriticOnSection(sec,text){
+  if(!text||text.length<50)return;
+  const wc=countWords(text);
+  const wl={abstract:S.params.abstractWords,intro:S.params.introWords,mm:S.params.mmWords,disc:S.params.discWords,conc:S.params.concWords}[sec]||500;
+  const cits=(text.match(/\[\d+[,\d\s]*\]|\(\w.+?,\s*\d{4}\)/g)||[]).length;
+  try{
+    const raw=await callOpenAI([{role:'user',content:'Evalúa la sección '+SEC_LABELS[sec]+' ('+wc+' palabras, '+cits+' citas):\n'+text.substring(0,1000)+'\nJSON: {"wordOk":bool,"citeOk":bool,"cohOk":bool,"note":"max 60 chars"}\nSolo JSON.'}],250,0.2);
+    const r=JSON.parse(raw.replace(/```json|```/g,''));
+    renderCriticBar(sec,r,wc,wl,cits);
+  }catch(e){}
+}
+function renderCriticBar(sec,r,wc,wl,cits){
+  const bar=document.getElementById('critic-bar');if(!bar)return;
+  bar.style.display='flex';
+  const wOk=wl===0||(wc>=wl*0.55&&wc<=wl*1.35);
+  const chip=(l,ok)=>'<span class="critic-chip '+(ok?'ok':'warn')+'">'+(ok?'✓':'⚠')+' '+l+'</span>';
+  bar.innerHTML='<span style="font-size:11px;color:var(--muted);font-family:\'IBM Plex Mono\',monospace;">'+SEC_LABELS[sec]+' —</span>'+chip(wc+'w/'+( wl||'∞')+'w',wOk)+chip(cits+' citas',r.citeOk!==false)+chip('Coherencia',r.cohOk!==false)+(r.note?'<span style="font-size:11px;color:var(--muted)">· '+r.note+'</span>':'');
+}
+
+// ── MAIN PIPELINE ─────────────────────────────────────
+async function runPipeline(){
+  S.running=true;S.startTime=Date.now();
+  setGlobalStatus('Inicializando…','running');initArticleOutput();
+  try{
+    // 1 ANALYZER
+    setPhase('analyzer','running');setProgress(5);log('▶ ANALYZER','agent');
+    const aRaw=await callOpenAI([{role:'user',content:'Analiza el manuscrito y el tema. Extrae hipótesis, tipo de estudio, meshTerms, y genera 5 searchQueries óptimas.\nTema: '+S.topic+'\n'+(S.extraKeywords?'Keywords: '+S.extraKeywords+'\n':'')+'Manuscrito: '+(S.manuscript?S.manuscript.substring(0,3000):'(no disponible)')+'\nJSON: {hypothesis,studyType,meshTerms[],searchQueries[]}. Solo JSON.'}],700,0.3);
+    try{S.analysis=JSON.parse(aRaw.replace(/```json|```/g,''));}catch(e){S.analysis={hypothesis:S.topic,meshTerms:[S.topic],searchQueries:[S.topic]};}
+    log('Hipótesis: '+(S.analysis.hypothesis||'').substring(0,80)+'…','ok');
+    log('Tipo: '+(S.analysis.studyType||'—')+' · MeSH: '+(S.analysis.meshTerms||[]).slice(0,4).join(', '),'dim');
+    setPhase('analyzer','done');
+
+    // 2 SCOUT
+    setPhase('scout','running');setProgress(15);log('▶ SCOUT','agent');
+    const allQ=[...new Set([...(S.analysis.searchQueries||[S.topic]),...(S.analysis.meshTerms||[]).slice(0,2).map(t=>t+' systematic review'),S.topic])].slice(0,6);
+    allQ.forEach(q=>log('  · '+q,'dim'));
+    setPhase('scout','done');
+
+    // 3 FETCHER
+    setPhase('fetcher','running');setProgress(25);log('▶ FETCHER','agent');
+    let allPapers=[];const fp=[];
+    for(const q of allQ.slice(0,4)){
+      if(S.sources.pubmed)fp.push(fetchPubMed(q,7).then(r=>{log('PubMed "'+q.substring(0,22)+'"→'+r.length,'ok');return r;}));
+      if(S.sources.semantic)fp.push(fetchSemanticScholar(q,7).then(r=>{log('S2 "'+q.substring(0,22)+'"→'+r.length,'ok');return r;}));
+      if(S.sources.arxiv)fp.push(fetchArXiv(q,4).then(r=>{log('arXiv "'+q.substring(0,22)+'"→'+r.length,'ok');return r;}));
+    }
+    if(S.sources.tavily&&S.tavilyKey)fp.push(fetchTavily(S.topic).then(r=>{log('Tavily→'+r.length,'ok');return r;}));
+    if(S.sources.serper&&S.serperKey)fp.push(fetchSerper(S.topic).then(r=>{log('Serper→'+r.length,'ok');return r;}));
+    if(S.sources.openalex)fp.push(fetchOpenAlex(S.topic,6).then(r=>{log('OpenAlex→'+r.length,'ok');return r;}));
+    const results=await Promise.allSettled(fp);
+    results.forEach(r=>{if(r.status==='fulfilled')allPapers.push(...r.value);});
+    allPapers=deduplicatePapers(allPapers);
+    log('Deduplicado: '+allPapers.length+' papers únicos','ok');
+    setPhase('fetcher','done');document.getElementById('stat-papers').textContent=allPapers.length;
+    renderPapersTab(allPapers,false);
+
+    // 4 LIBRARIAN
+    setPhase('librarian','running');setProgress(42);log('▶ LIBRARIAN','agent');
+    const pForRank=allPapers.slice(0,Math.min(50,allPapers.length));
+    let selectedIdx;
+    try{
+      const lr=await callOpenAI([{role:'user',content:'Artículo: "'+S.topic+'"\nManuscrito: '+(S.manuscript?S.manuscript.substring(0,800):'(solo tema)')+'\nPapers:\n'+pForRank.map((p,i)=>'['+i+'] '+p.title+' ('+( p.year||'?')+') '+p.source+' citas:'+(p.citations||'?')).join('\n')+'\nSelecciona los '+Math.min(S.params.maxRefs,30)+' más relevantes. JSON: {"selected":[idx],"reasoning":""}. Solo JSON.'}],600,0.2);
+      const ld=JSON.parse(lr.replace(/```json|```/g,''));selectedIdx=ld.selected||[];log('Reasoning: '+(ld.reasoning||'').substring(0,100),'dim');
+    }catch(e){selectedIdx=pForRank.map((_,i)=>i).slice(0,Math.min(25,pForRank.length));}
+    S.papers=selectedIdx.map(i=>pForRank[i]).filter(Boolean).slice(0,S.params.maxRefs);
+    S.papers.forEach((p,i)=>p.citNum=i+1);
+    log(S.papers.length+' papers seleccionados','ok');
+    setPhase('librarian','done');setProgress(52);renderPapersTab(allPapers,true);
+
+    // 5 WRITER (streaming)
+    setPhase('writer','running');log('▶ WRITER — streaming por sección','agent');
+    const writeSecs=S.sectionOrder.filter(s=>s!=='refs');
+    for(let i=0;i<writeSecs.length;i++){
+      const sec=writeSecs[i];if(S.abortFlag)break;
+      log('  ↻ Streaming: '+SEC_LABELS[sec]+'…','agent');
+      document.getElementById('sst-'+sec).textContent='⏳';
+      const{systemPrompt,userPrompt,maxTokens}=buildSectionPrompt(sec);
+      try{
+        const text=await streamToSection(sec,systemPrompt,userPrompt,maxTokens);
+        document.getElementById('sst-'+sec).textContent='✅';
+        log('  ✓ '+SEC_LABELS[sec]+' — '+countWords(text)+'w','ok');
+        setProgress(52+(i+1)/writeSecs.length*30);
+      }catch(e){
+        log('  ✗ '+SEC_LABELS[sec]+': '+e.message,'err');
+        document.getElementById('sst-'+sec).textContent='❌';
+        const el=document.getElementById('sec-content-'+sec);
+        if(el)el.innerHTML='<p style="color:var(--rust)">Error: '+e.message+'</p>';
+      }
+    }
+    setPhase('writer','done');
+
+    // 6 CRITIC
+    setPhase('critic','running');setProgress(85);log('▶ CRITIC','agent');
+    if(S.sections.refs){const rc=document.getElementById('refs-content');if(rc){rc.innerHTML=buildReferencesHtml();document.getElementById('sst-refs').textContent='✅';}log('✓ Referencias: '+S.papers.length,'ok');}
+    for(const sec of writeSecs){if(S.articleSections[sec])await runCriticOnSection(sec,S.articleSections[sec]);}
+    setPhase('critic','done');setProgress(100);
+
+    const tw=countWordsInArticle();const el=Math.round((Date.now()-S.startTime)/1000);
+    document.getElementById('stat-words').textContent=tw;document.getElementById('stat-refs').textContent=S.papers.length;document.getElementById('stat-time').textContent=el+'s';
+    setGlobalStatus('Artículo completado ✓','done');log('✦ '+el+'s · '+tw+'w · '+S.papers.length+' refs','ok');
+    document.getElementById('export-bar').style.display='flex';document.getElementById('critic-bar').style.display='flex';
+    S.running=false;
+
+    // Save to IndexedDB (#4)
+    try{await saveArticle({topic:S.topic,date:new Date().toISOString(),model:S.params.model,words:tw,refs:S.papers.length,sections:{...S.articleSections},papers:S.papers.map(p=>({...p})),params:{...S.params}});}catch(e){}
+    await renderHistoryTab();
+
+  }catch(e){log('ERROR FATAL: '+e.message,'err');setGlobalStatus('Error','error');S.running=false;}
+}
+
+// ── Helpers ────────────────────────────────────────────
+function markdownToHtml(text){
+  if(!text)return'';
+  return'<p>'+text
+    .replace(/\[(\d+(?:[,\s]*\d+)*)\]/g,(m,n)=>'<span class="citation" onmouseenter="showCite(event,'+n+')" onmouseleave="hideCite()">['+n+']</span>')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/\n\n+/g,'</p><p>')
+    .replace(/\n/g,'<br>')+'</p>';
+}
+function countWords(t){return(t||'').trim().split(/\s+/).filter(w=>w.length>0).length;}
+function countWordsInArticle(){const o=document.getElementById('article-output');return countWords(o?o.innerText||o.textContent:'');}
+
+// ── Citation tooltip (#3) ──────────────────────────────
+function showCiteEl(event,el){
+  const raw=el.getAttribute('data-cit')||'';
+  const n=parseInt(raw.split(',')[0],10);
+  showCiteByNum(event,n);
+}
+function showCite(event,num){
+  const n=Array.isArray(num)?num[0]:+num;
+  showCiteByNum(event,n);
+}
+function showCiteByNum(event,n){
+  const p=S.papers.find(p=>p.citNum===n);if(!p)return;
+  const tt=document.getElementById('cite-tooltip');
+  document.getElementById('ct-title').textContent=p.title||'';
+  document.getElementById('ct-meta').textContent=(p.authors||[]).slice(0,3).join(', ')+'  ·  '+(p.year||'s.f.')+' · '+(p.journal||p.source||'');
+  tt.style.display='block';
+  const rect=event.target.getBoundingClientRect();
+  let top=rect.top-10-(tt.offsetHeight||80);if(top<8)top=rect.bottom+8;
+  let left=rect.left;if(left+390>window.innerWidth)left=window.innerWidth-395;if(left<8)left=8;
+  tt.style.top=top+'px';tt.style.left=left+'px';
+}
+function hideCite(){document.getElementById('cite-tooltip').style.display='none';}
+
+// ── References ─────────────────────────────────────────
+function buildReferencesHtml(){
+  const f={
+    vancouver:(p,i)=>{const au=(p.authors||[]).slice(0,6).join(', ')||'Autores';const doi=p.doi?'<a href="'+(p.doi.startsWith('http')?p.doi:'https://doi.org/'+p.doi)+'" target="_blank">'+(p.doi.startsWith('http')?p.doi:'https://doi.org/'+p.doi)+'</a>':'';return'<div class="ref-item"><span class="ref-num">['+(i+1)+']</span><span class="ref-text">'+au+'. '+p.title+'. <em>'+(p.journal||'')+'</em>. '+(p.year||'')+'. '+doi+'</span></div>';},
+    apa:(p,i)=>{const au=(p.authors||[])[0]||'Anónimo';const doi=p.doi?'<a href="'+(p.doi.startsWith('http')?p.doi:'https://doi.org/'+p.doi)+'" target="_blank">'+(p.doi.startsWith('http')?p.doi:'https://doi.org/'+p.doi)+'</a>':'';return'<div class="ref-item"><span class="ref-num">['+(i+1)+']</span><span class="ref-text">'+au+' et al. ('+(p.year||'s.f.')+') '+p.title+'. <em>'+(p.journal||'')+'</em>. '+doi+'</span></div>';},
+    ieee:(p,i)=>'<div class="ref-item"><span class="ref-num">['+(i+1)+']</span><span class="ref-text">'+((p.authors||[]).slice(0,3).join(', ')||'Anónimo')+',"'+p.title+'," <em>'+(p.journal||'')+'</em>, '+(p.year||'')+'.</span></div>',
+    chicago:(p,i)=>'<div class="ref-item"><span class="ref-num">['+(i+1)+']</span><span class="ref-text">'+((p.authors||[]).slice(0,3).join(', ')||'Anónimo')+'. "'+p.title+'." <em>'+(p.journal||'')+'</em> ('+(p.year||'')+').</span></div>'
+  };
+  const fmt=f[S.params.citeStyle]||f.vancouver;
+  return S.papers.map((p,i)=>fmt(p,i)).join('');
+}
+
+// ── Papers tab ────────────────────────────────────────
+function renderPapersTab(papers,markSel){
+  const list=document.getElementById('papers-list');
+  if(!papers.length){list.innerHTML='<p style="color:var(--muted);font-size:13px;padding:20px;text-align:center;">No se encontraron papers.</p>';return;}
+  const selSet=new Set(S.papers.map(p=>p.doi||p.title));
+  list.innerHTML=papers.map(p=>{
+    const isSel=markSel&&(selSet.has(p.doi)||selSet.has(p.title));
+    const idx=isSel?S.papers.findIndex(sp=>sp.title===p.title):-1;
+    return'<div class="paper-card'+(isSel?' selected-ref':'')+'"><div class="paper-card-title">'+(isSel&&idx>=0?'<span class="paper-card-badge">['+(idx+1)+']</span>':'')+p.title+'</div><div class="paper-card-meta">'+((p.authors||[]).slice(0,3).join(', ')||'—')+' · '+(p.year||'?')+' · '+(p.journal||'?')+(p.citations?' · '+p.citations+' citas':'')+'</div><div class="paper-card-source">'+p.source+'</div></div>';
+  }).join('');
+}
+
+// ── History (#4) ──────────────────────────────────────
+async function renderHistoryTab(){
+  const panel=document.getElementById('history-panel');
+  const articles=await getArticles();
+  if(!articles||!articles.length){panel.innerHTML='<div class="history-empty">Aún no hay artículos guardados.<br>Cada artículo completado se guarda automáticamente.</div>';return;}
+  panel.innerHTML=[...articles].reverse().map(a=>'<div class="history-card" onclick="loadHistoryArticle('+a.id+')"><div class="history-card-info"><div class="history-card-title">'+a.topic+'</div><div class="history-card-meta">'+new Date(a.date).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})+' · '+a.model+' · '+a.words+'w · '+a.refs+' refs</div></div><button class="history-card-del" onclick="delHist('+a.id+',event)">🗑</button></div>').join('');
+}
+function loadHistoryArticle(id){
+  getArticles().then(arts=>{
+    const a=arts.find(x=>x.id===id);if(!a)return;
+    S.topic=a.topic;S.papers=a.papers||[];S.params={...S.params,...a.params};S.articleSections=a.sections||{};
+    S.sectionOrder=Object.keys(S.articleSections).filter(s=>s!=='refs');
+    buildSectionList();initArticleOutput();
+    Object.entries(S.articleSections).forEach(([sec,txt])=>{const el=document.getElementById('sec-content-'+sec);if(el){el.className='section-content';el.innerHTML=markdownToHtml(txt);}const ss=document.getElementById('sst-'+sec);if(ss)ss.textContent='✅';});
+    if(a.params?.refs!==false){const rc=document.getElementById('refs-content');if(rc)rc.innerHTML=buildReferencesHtml();}
+    document.getElementById('export-bar').style.display='flex';
+    setGlobalStatus('Artículo cargado del historial','done');
+    document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.remove('active');if(i===0)b.classList.add('active');});
+    switchTab('article',null);
+  });
+}
+async function delHist(id,e){e.stopPropagation();await deleteArticle(id);await renderHistoryTab();}
+
+// ── Export ────────────────────────────────────────────
+function getArticleMarkdown(){
+  let md='# '+S.topic+'\n\n*Manuscriptor v2 · '+new Date().toLocaleDateString('es-ES')+'*\n\n---\n\n';
+  S.sectionOrder.filter(s=>s!=='refs').forEach(sec=>{const el=document.getElementById('sec-content-'+sec);const t=el?(el.innerText||el.textContent||S.articleSections[sec]||''):'';md+='## '+SEC_LABELS[sec]+'\n\n'+t+'\n\n';});
+  if(S.sections.refs&&S.papers.length){md+='## Referencias\n\n';S.papers.forEach((p,i)=>{md+='['+(i+1)+'] '+(p.authors||[]).join(', ')+'. '+p.title+'. '+(p.journal||'')+'. '+(p.year||'')+'. '+(p.doi||'')+'\n\n';});}
+  return md;
+}
+async function exportDocx(){
+  if(typeof JSZip==='undefined'){
+    // Fallback: download as rich RTF which Word opens natively
+    exportDocxAsRTF(); return;
+  }
+  // Build a real .docx (OpenXML) using JSZip
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const wPara=(text,style)=>`<w:p><w:pPr><w:pStyle w:val="${style||'Normal'}"/></w:pPr><w:r><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;
+  const wParaNormal=text=>`<w:p><w:r><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;
+
+  let body='';
+  body+=wPara(S.topic,'Title');
+  body+=wParaNormal('Manuscriptor v2 · '+new Date().toLocaleDateString('es-ES'));
+  body+='<w:p><w:r><w:t> </w:t></w:r></w:p>';
+
+  S.sectionOrder.filter(s=>s!=='refs').forEach(sec=>{
+    const el=document.getElementById('sec-content-'+sec);
+    const txt=el?(el.innerText||el.textContent||S.articleSections[sec]||''):'';
+    body+=wPara(SEC_LABELS[sec],'Heading1');
+    txt.split('\n\n').filter(p=>p.trim()).forEach(para=>{ body+=wParaNormal(para.trim()); });
+    body+='<w:p><w:r><w:t> </w:t></w:r></w:p>';
+  });
+  if(S.sections.refs&&S.papers.length){
+    body+=wPara('Referencias','Heading1');
+    S.papers.forEach((p,i)=>{
+      const line='['+(i+1)+'] '+((p.authors||[]).slice(0,6).join(', ')||'Autores')+'. '+p.title+'. '+(p.journal||'')+'. '+(p.year||'')+'. '+(p.doi||'');
+      body+=wParaNormal(line);
+    });
+  }
+
+  const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>${body}<w:sectPr/></w:body></w:document>`;
+
+  const stylesXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:sz w:val="52"/><w:szCs w:val="52"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:rPr><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/><w:color w:val="1a1a1a"/></w:rPr></w:style>
+</w:styles>`;
+
+  const relsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+  const appRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const contentTypes=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+
+  const zip=new JSZip();
+  zip.file('[Content_Types].xml', contentTypes);
+  zip.file('_rels/.rels', appRels);
+  zip.file('word/document.xml', docXml);
+  zip.file('word/styles.xml', stylesXml);
+  zip.file('word/_rels/document.xml.rels', relsXml);
+
+  const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='manuscriptor_'+Date.now()+'.docx';a.click();
+  URL.revokeObjectURL(url);
+  log('✓ Word .docx exportado','ok');
+}
+
+function exportDocxAsRTF(){
+  // RTF fallback when JSZip unavailable
+  let rtf='{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}{\\colortbl;\\red139\\green97\\blue24;}\n';
+  rtf+='\\f0\\fs28\\b '+S.topic.replace(/[\\{}]/g,'')+'\\b0\\par\\par\n';
+  S.sectionOrder.filter(s=>s!=='refs').forEach(sec=>{
+    const el=document.getElementById('sec-content-'+sec);
+    const txt=el?(el.innerText||el.textContent||''):'';
+    rtf+='\\fs26\\b '+SEC_LABELS[sec]+'\\b0\\par\n';
+    rtf+='\\fs22 '+txt.replace(/[\\{}]/g,'').replace(/\n/g,'\\par\n')+'\\par\\par\n';
+  });
+  rtf+='}';
+  const blob=new Blob([rtf],{type:'application/rtf'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='manuscriptor_'+Date.now()+'.rtf';a.click();
+  URL.revokeObjectURL(url);
+  log('JSZip no disponible — exportado como .rtf (se abre en Word)','warn');
+}
+function exportAs(fmt){
+  if(fmt==='docx'){exportDocx();return;}
+  let c,fn,type;
+  if(fmt==='md'){c=getArticleMarkdown();fn='manuscriptor_'+Date.now()+'.md';type='text/markdown';}
+  else if(fmt==='txt'){c=document.getElementById('article-output').innerText;fn='manuscriptor_'+Date.now()+'.txt';type='text/plain';}
+  else if(fmt==='tex'){const md=getArticleMarkdown();c='\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{hyperref}\n\\title{'+S.topic+'}\n\\begin{document}\n\\maketitle\n\n'+md.split('\n').map(l=>l.startsWith('## ')?'\\section{'+l.replace('## ','')+'}':(l.startsWith('# ')?'':l)).join('\n')+'\n\\end{document}';fn='manuscriptor_'+Date.now()+'.tex';type='text/x-tex';}
+  const b=new Blob([c],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fn;a.click();URL.revokeObjectURL(u);
+}
+function copyAll(){navigator.clipboard.writeText(getArticleMarkdown()).then(()=>{setGlobalStatus('Copiado ✓','done');setTimeout(()=>setGlobalStatus('Artículo completado ✓','done'),2000);});}
+
+// ── Utils ─────────────────────────────────────────────
+function scrollToSection(sec){const el=document.getElementById('sec-block-'+sec);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(p=>{p.classList.remove('active');p.style.display='none';});
+  const pane=document.getElementById('tab-'+name);if(pane){pane.classList.add('active');pane.style.display='flex';}
+  if(name==='history')renderHistoryTab();
+}
+function resetApp(){S.running=false;S.abortFlag=true;setTimeout(()=>{S.abortFlag=false;document.getElementById('app').classList.remove('visible');document.getElementById('onboarding').style.display='flex';goStep(1);},100);}
+
+// ── Init ──────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',async()=>{
+  const ok=localStorage.getItem('ms_openai'),tv=localStorage.getItem('ms_tavily'),sp=localStorage.getItem('ms_serper');
+  if(ok){document.getElementById('openai-key').value=ok;document.getElementById('save-keys').checked=true;}
+  if(tv)document.getElementById('tavily-key').value=tv;
+  if(sp)document.getElementById('serper-key').value=sp;
+  try{await openDB();}catch(e){console.warn('IndexedDB:',e);}
+  computeCostEstimate();
+  const ua=document.getElementById('upload-area');
+  ua.addEventListener('dragover',e=>{e.preventDefault();ua.classList.add('dragging');});
+  ua.addEventListener('dragleave',()=>ua.classList.remove('dragging'));
+  ua.addEventListener('drop',e=>{
+    e.preventDefault();ua.classList.remove('dragging');
+    const file=e.dataTransfer.files[0];
+    if(file){const dt=new DataTransfer();dt.items.add(file);document.getElementById('file-upload').files=dt.files;handleFile(document.getElementById('file-upload'));}
+  });
+});
+</script>
+</body>
+</html>

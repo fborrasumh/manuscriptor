@@ -10,7 +10,8 @@
 function loadScript(src){return new Promise(res=>{const s=document.createElement('script');s.src=src;s.onload=()=>res(true);s.onerror=()=>{console.warn('Warning: CDN failed:',src);res(false);};document.head.appendChild(s);});}
 window._libsReady=Promise.all([
   loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'),
-  loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'),
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js')
 ]);
 </script>
 <style>
@@ -166,6 +167,20 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .history-card-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;transition:color .12s;flex-shrink:0}
 .history-card-del:hover{color:var(--rust)}
 .history-empty{padding:40px;text-align:center;color:var(--muted);font-size:13px;font-style:italic}
+/* Multi-file upload */
+.file-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.file-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--paper);border:1px solid var(--border);border-radius:3px;font-size:12px;transition:border-color .15s}
+.file-row.processing{border-color:var(--amber);background:rgba(200,144,42,.04)}
+.file-row.done{border-color:var(--sage);background:rgba(61,90,74,.04)}
+.file-row.error{border-color:var(--rust);background:rgba(155,58,30,.04)}
+.file-row-icon{font-size:18px;flex-shrink:0}
+.file-row-info{flex:1;min-width:0}
+.file-row-name{font-family:'IBM Plex Mono',monospace;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.file-row-meta{font-size:11px;color:var(--muted);margin-top:1px}
+.file-row-status{font-size:11px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-align:right}
+.file-row-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 4px;transition:color .12s;flex-shrink:0}
+.file-row-del:hover{color:var(--rust)}
+.upload-summary{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding:8px 12px;background:rgba(61,90,74,.06);border:1px solid rgba(61,90,74,.2);border-radius:3px;margin-top:8px}
 ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 @media(max-width:1100px){.log-panel{display:none}}
 @media(max-width:780px){.pipeline-panel{width:52px}.phase-label,.phase-sub,.panel-section-title,.section-list,.stats-row{display:none}#article-output{padding:24px 20px}}
@@ -213,20 +228,15 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <p class="hint">Sube tu manuscrito parcial o pega el texto. Acepta <strong>.txt</strong>, <strong>.md</strong> y <strong>.pdf</strong>. Manuscriptor inferirá qué literatura buscar.</p>
         <label>Tema del artículo <span style="color:var(--rust)">*</span></label>
         <input type="text" id="article-topic" placeholder="ej. Efectividad de la fisioterapia en lumbalgia crónica...">
-        <label>Subir manuscrito <span style="color:var(--muted);font-weight:300;text-transform:none;font-size:11px;">(.txt · .md · .pdf — máx. 5 MB)</span></label>
+        <label>Subir manuscrito <span style="color:var(--muted);font-weight:300;text-transform:none;font-size:11px;">múltiples archivos · .pdf · .docx · .doc · .txt · .md · .csv · .xlsx · máx. 20 MB/archivo</span></label>
         <div class="upload-area" id="upload-area">
-          <input type="file" id="file-upload" accept=".txt,.md,.text,.pdf" onchange="handleFile(this)">
-          <div class="upload-icon">📄</div>
-          <div class="upload-label">Arrastra tu archivo aquí o <strong>haz clic</strong></div>
-          <div class="upload-hint">.txt · .md · .pdf</div>
+          <input type="file" id="file-upload" accept=".txt,.md,.text,.pdf,.doc,.docx,.csv,.xlsx,.xls,.rtf,.odt" multiple onchange="handleFiles(this)">
+          <div class="upload-icon">📂</div>
+          <div class="upload-label">Arrastra archivos aquí o <strong>haz clic para seleccionar</strong></div>
+          <div class="upload-hint">.pdf · .docx · .doc · .txt · .md · .csv · .xlsx · .rtf — múltiples archivos permitidos</div>
         </div>
-        <div class="file-preview" id="file-preview">
-          <span id="file-icon" style="font-size:20px">📄</span>
-          <span class="file-name" id="file-name"></span>
-          <span class="file-size" id="file-size"></span>
-          <button class="btn-icon" onclick="clearFile()">✕</button>
-        </div>
-        <div id="pdf-progress" style="display:none;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:8px;"></div>
+        <div class="file-list" id="file-list"></div>
+        <div id="upload-summary" class="upload-summary" style="display:none;"></div>
         <label style="margin-top:14px;">O pega tu texto aquí</label>
         <textarea id="manuscript-text" rows="8" placeholder="Pega aquí Material y Métodos, Resultados, o cualquier texto parcial del artículo..."></textarea>
         <label>Palabras clave adicionales</label>
@@ -447,26 +457,190 @@ function hideErr(id){document.getElementById(id).classList.remove('visible');}
 function toggleKey(id){const e=document.getElementById(id);e.type=e.type==='password'?'text':'password';}
 function clearKey(id){document.getElementById(id).value='';}
 
-async function handleFile(input){
-  const file=input.files[0];if(!file)return;
-  document.getElementById('file-name').textContent=file.name;
-  document.getElementById('file-size').textContent=(file.size/1024).toFixed(1)+' KB';
-  document.getElementById('file-preview').classList.add('visible');
-  const pp=document.getElementById('pdf-progress');
-  if(file.name.toLowerCase().endsWith('.pdf')){
-    document.getElementById('file-icon').textContent='📕';
-    pp.style.display='block';pp.style.color='var(--muted)';pp.textContent='⏳ Extrayendo texto del PDF…';
-    try{
-      const txt=await extractPDFText(file);
-      document.getElementById('manuscript-text').value=txt.substring(0,15000);
-      pp.style.color='var(--sage)';pp.textContent='✓ PDF extraído: '+txt.length+' caracteres';
-    }catch(e){pp.style.color='var(--rust)';pp.textContent='✗ Error PDF: '+e.message;}
-  }else{
-    document.getElementById('file-icon').textContent='📄';pp.style.display='none';
-    const r=new FileReader();r.onload=e=>document.getElementById('manuscript-text').value=e.target.result;r.readAsText(file);
+// ── Multi-file upload system ──────────────────────────
+const UPLOADED_FILES = []; // {id, name, size, ext, status, chars, text}
+let _fileIdCounter = 0;
+
+const FILE_ICONS = {
+  pdf:'📕', docx:'📘', doc:'📘', txt:'📄', md:'📝',
+  csv:'📊', xlsx:'📊', xls:'📊', rtf:'📋', odt:'📋', default:'📄'
+};
+const MAX_FILE_SIZE_MB = 20;
+const MAX_TOTAL_CHARS = 200000; // large enough for full CSVs
+
+function fileExt(name){ return name.split('.').pop().toLowerCase(); }
+function fileIcon(name){ return FILE_ICONS[fileExt(name)] || FILE_ICONS.default; }
+function fileSizeStr(bytes){ return bytes>1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB'; }
+
+async function handleFiles(input){
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  for(const file of files){
+    if(file.size > MAX_FILE_SIZE_MB * 1048576){
+      addFileRow({id:++_fileIdCounter, name:file.name, size:file.size, ext:fileExt(file.name), status:'error', chars:0, text:'', error:'Archivo demasiado grande (máx '+MAX_FILE_SIZE_MB+' MB)'});
+      continue;
+    }
+    const entry = {id:++_fileIdCounter, name:file.name, size:file.size, ext:fileExt(file.name), status:'processing', chars:0, text:''};
+    UPLOADED_FILES.push(entry);
+    addFileRow(entry);
+    processFile(file, entry);
+  }
+  input.value=''; // reset so same file can be re-added
+}
+
+async function processFile(file, entry){
+  const ext = entry.ext;
+  try{
+    let text = '';
+    if(ext === 'pdf'){
+      text = await extractPDFText(file);
+    } else if(ext === 'docx' || ext === 'doc'){
+      text = await extractDocxText(file);
+    } else if(ext === 'xlsx' || ext === 'xls'){
+      text = await extractXlsxText(file);
+    } else if(ext === 'csv'){
+      text = await readAsText(file);
+      text = csvToReadable(text);
+    } else {
+      // txt, md, rtf, odt — read as plain text
+      text = await readAsText(file);
+    }
+    entry.text = text.substring(0, 200000);
+    entry.chars = entry.text.length;
+    entry.status = 'done';
+    updateFileRow(entry);
+    rebuildManuscriptText();
+  } catch(e){
+    entry.status = 'error';
+    entry.error = e.message;
+    updateFileRow(entry);
   }
 }
-function clearFile(){document.getElementById('file-upload').value='';document.getElementById('file-preview').classList.remove('visible');document.getElementById('pdf-progress').style.display='none';}
+
+function readAsText(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = () => rej(new Error('Error leyendo archivo'));
+    r.readAsText(file, 'UTF-8');
+  });
+}
+
+async function extractDocxText(file){
+  if(typeof mammoth === 'undefined') throw new Error('mammoth.js no disponible — sube como .txt');
+  const buf = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({arrayBuffer: buf});
+  return result.value || '';
+}
+
+async function extractXlsxText(file){
+  // Parse XLSX using JSZip (already loaded) — read shared strings + sheets
+  if(typeof JSZip === 'undefined') throw new Error('JSZip no disponible — sube como .csv');
+  const buf = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(buf);
+
+  // Read shared strings
+  let strings = [];
+  const ssFile = zip.file('xl/sharedStrings.xml');
+  if(ssFile){
+    const xml = await ssFile.async('string');
+    const matches = xml.match(/<t[^>]*>([^<]*)<\/t>/g) || [];
+    strings = matches.map(m => m.replace(/<[^>]+>/g,''));
+  }
+
+  // Read all sheets
+  let text = '';
+  const sheetFiles = Object.keys(zip.files).filter(n => n.match(/^xl\/worksheets\/sheet\d+\.xml$/));
+  for(const sf of sheetFiles.slice(0,3)){
+    const xml = await zip.file(sf).async('string');
+    // Extract cell values
+    const cells = xml.match(/<c [^>]*>.*?<\/c>/gs) || [];
+    const rows = {};
+    cells.forEach(cell => {
+      const rMatch = cell.match(/r="([A-Z]+)(\d+)"/);
+      const tMatch = cell.match(/t="([^"]+)"/);
+      const vMatch = cell.match(/<v>([^<]*)<\/v>/);
+      if(!rMatch || !vMatch) return;
+      const row = rMatch[2], col = rMatch[1];
+      let val = vMatch[1];
+      if(tMatch && tMatch[1]==='s') val = strings[parseInt(val)] || val;
+      if(!rows[row]) rows[row] = [];
+      rows[row].push(val);
+    });
+    text += Object.keys(rows).sort((a,b)=>+a-+b).map(r=>rows[r].join('\t')).join('\n') + '\n\n';
+  }
+  return text.trim() || 'No se pudo extraer contenido del Excel.';
+}
+
+function csvToReadable(text){
+  // Return full CSV - no row limit
+  return text;
+}
+
+function rebuildManuscriptText(){
+  const parts = UPLOADED_FILES
+    .filter(f => f.status === 'done' && f.text)
+    .map(f => `=== ${f.name} ===\n${f.text}`);
+  const combined = parts.join('\n\n').substring(0, MAX_TOTAL_CHARS);
+  document.getElementById('manuscript-text').value = combined;
+  updateUploadSummary();
+}
+
+function updateUploadSummary(){
+  const done = UPLOADED_FILES.filter(f=>f.status==='done');
+  const errors = UPLOADED_FILES.filter(f=>f.status==='error');
+  const totalChars = done.reduce((s,f)=>s+f.chars,0);
+  const sum = document.getElementById('upload-summary');
+  if(!UPLOADED_FILES.length){ sum.style.display='none'; return; }
+  sum.style.display='block';
+  sum.innerHTML = `✓ ${done.length} archivo${done.length!==1?'s':''} procesado${done.length!==1?'s':''} · ${totalChars.toLocaleString()} caracteres totales`+
+    (errors.length ? ` · <span style="color:var(--rust)">${errors.length} con error</span>` : '') +
+    (totalChars > MAX_TOTAL_CHARS*0.9 ? ` · <span style="color:var(--amber)">truncado a ${MAX_TOTAL_CHARS.toLocaleString()} chars</span>` : '');
+}
+
+function addFileRow(entry){
+  const list = document.getElementById('file-list');
+  const row = document.createElement('div');
+  row.className = 'file-row ' + (entry.status==='error'?'error':'processing');
+  row.id = 'frow-'+entry.id;
+  row.innerHTML = `
+    <span class="file-row-icon">${fileIcon(entry.name)}</span>
+    <div class="file-row-info">
+      <div class="file-row-name">${entry.name}</div>
+      <div class="file-row-meta">${fileSizeStr(entry.size)} · .${entry.ext}</div>
+    </div>
+    <span class="file-row-status" id="fstat-${entry.id}">${entry.status==='error'?'<span style="color:var(--rust)">'+entry.error+'</span>':'<span style="color:var(--amber)">⏳ Procesando…</span>'}</span>
+    <button class="file-row-del" onclick="removeFileEntry(${entry.id})" title="Quitar">✕</button>`;
+  list.appendChild(row);
+}
+
+function updateFileRow(entry){
+  const row = document.getElementById('frow-'+entry.id);
+  if(!row) return;
+  row.className = 'file-row ' + (entry.status==='done'?'done':entry.status==='error'?'error':'processing');
+  const stat = document.getElementById('fstat-'+entry.id);
+  if(!stat) return;
+  if(entry.status==='done')
+    stat.innerHTML = `<span style="color:var(--sage)">✓ ${entry.chars.toLocaleString()} chars</span>`;
+  else if(entry.status==='error')
+    stat.innerHTML = `<span style="color:var(--rust)" title="${entry.error}">✗ Error</span>`;
+}
+
+function removeFileEntry(id){
+  const idx = UPLOADED_FILES.findIndex(f=>f.id===id);
+  if(idx>=0) UPLOADED_FILES.splice(idx,1);
+  const row = document.getElementById('frow-'+id);
+  if(row) row.remove();
+  rebuildManuscriptText();
+  if(!UPLOADED_FILES.length) document.getElementById('upload-summary').style.display='none';
+}
+
+function clearFile(){
+  UPLOADED_FILES.length=0;
+  document.getElementById('file-list').innerHTML='';
+  document.getElementById('upload-summary').style.display='none';
+  document.getElementById('file-upload').value='';
+}
 function toggleSource(el,id){document.getElementById(id).classList.toggle('active',el.checked);}
 function toggleSecGen(el,id){document.getElementById(id).classList.toggle('active',el.checked);}
 
@@ -971,8 +1145,11 @@ window.addEventListener('DOMContentLoaded',async()=>{
   ua.addEventListener('dragleave',()=>ua.classList.remove('dragging'));
   ua.addEventListener('drop',e=>{
     e.preventDefault();ua.classList.remove('dragging');
-    const file=e.dataTransfer.files[0];
-    if(file){const dt=new DataTransfer();dt.items.add(file);document.getElementById('file-upload').files=dt.files;handleFile(document.getElementById('file-upload'));}
+    const files=e.dataTransfer.files;
+    if(files&&files.length){
+      // Feed dropped files directly to handleFiles
+      const fakeInput={files:files};handleFiles(fakeInput);
+    }
   });
 });
 </script>
